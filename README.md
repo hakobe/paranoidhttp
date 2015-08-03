@@ -1,5 +1,7 @@
 # Paranoidhttp
 
+[![Build Status](https://travis-ci.org/hakobe/paranoidhttp.svg?branch=master)](https://travis-ci.org/hakobe/paranoidhttp)
+
 Paranoidhttp provides pre-configured http.Client that protects you from harm.
 
 ## Description
