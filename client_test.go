@@ -3,6 +3,18 @@ package paranoidhttp
 import "testing"
 import "net"
 
+func TestRequest(t *testing.T) {
+	resp, err := DefaultClient.Get("http://www.example.org")
+	if err != nil && resp.StatusCode == 200 {
+		t.Error("The request with an ordinal url should be successful")
+	}
+
+	resp, err = DefaultClient.Get("http://localhost")
+	if err == nil {
+		t.Errorf("The request for localhost should be fail")
+	}
+}
+
 func TestIsBadHost(t *testing.T) {
 	badHosts := []string{
 		"localhost",
