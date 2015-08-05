@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -48,14 +47,48 @@ func init() {
 	DefaultClient, _, _ = NewClient()
 }
 
+func safeAddr(hostport string) (string, error) {
+	host, port, err := net.SplitHostPort(hostport)
+	if err != nil {
+		return "", err
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		if ip.To4() != nil && isBadIPv4(ip) {
+			return "", fmt.Errorf("bad ip is detected: %v", ip)
+		}
+		return net.JoinHostPort(ip.String(), port), nil
+	}
+
+	if isBadHost(host) {
+		return "", fmt.Errorf("bad host is detected: %v", host)
+	}
+
+	ips, err := net.LookupIP(host) // TODO timeout
+	if err != nil || len(ips) <= 0 {
+		return "", err
+	}
+	for _, ip := range ips {
+		if ip.To4() != nil && isBadIPv4(ip) {
+			return "", fmt.Errorf("bad ip is detected: %v", ip)
+		}
+	}
+	return net.JoinHostPort(ips[0].String(), port), nil
+}
+
 // NewDialer returns a dialer function which only allows IPv4 connections.
 //
 // This is used to create a new paranoid http.Client,
 // because I'm not sure about a paranoid behavior for IPv6 connections :(
 func NewDialer(dialer *net.Dialer) func(network, addr string) (net.Conn, error) {
-	return func(network, addr string) (net.Conn, error) {
+	return func(network, hostport string) (net.Conn, error) {
 		switch network {
 		case "tcp", "tcp4":
+			addr, err := safeAddr(hostport)
+			if err != nil {
+				return nil, err
+			}
 			return dialer.Dial("tcp4", addr)
 		default:
 			return nil, errors.New("does not support any networks except tcp4")
@@ -78,66 +111,8 @@ func NewClient() (*http.Client, *http.Transport, *net.Dialer) {
 	}
 	return &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: NewTransport(transport),
+		Transport: transport,
 	}, transport, dialer
-}
-
-// NewTransport returns a new http.Tranport configured to be pranoid for attackers.
-func NewTransport(t *http.Transport) http.RoundTripper {
-	return &transport{transport: t}
-}
-
-type transport struct {
-	transport *http.Transport
-}
-
-func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	hostport := req.URL.Host
-
-	errorWithClose := func(err error) (*http.Response, error) {
-		if req.Body != nil {
-			req.Body.Close()
-		}
-		return nil, err
-	}
-
-	var host string
-	if strings.LastIndex(hostport, ":") > strings.LastIndex(hostport, "]") { // hasPort
-		h, _, err := net.SplitHostPort(hostport)
-		if err != nil {
-			return errorWithClose(err)
-		}
-		host = h
-	} else {
-		host = hostport
-	}
-
-	ip := net.ParseIP(host)
-	if ip != nil {
-		if ip.To4() != nil && isBadIPv4(ip) {
-			return errorWithClose(fmt.Errorf("bad ip is detected: %v", ip))
-		}
-	} else {
-		if isBadHost(host) {
-			return errorWithClose(fmt.Errorf("bad host is detected: %v", host))
-		}
-
-		ips, err := net.LookupIP(host) // TODO timeout
-		if err != nil {
-			return errorWithClose(err)
-		}
-		for _, ip := range ips {
-			if ip.To4() != nil && isBadIPv4(ip) {
-				return errorWithClose(fmt.Errorf("bad ip is detected: %v", ip))
-			}
-		}
-	}
-
-	return t.transport.RoundTrip(req)
-}
-
-func (t *transport) CancelRequest(req *http.Request) {
-	t.transport.CancelRequest(req)
 }
 
 var regLocalhost = regexp.MustCompile("(?i)^localhost$")
