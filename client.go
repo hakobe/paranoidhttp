@@ -13,37 +13,23 @@ import (
 // DefaultClient is the default Client whose setting is the same as http.DefaultClient.
 var DefaultClient *http.Client
 
+func mustParseCIDR(addr string) *net.IPNet {
+	_, ipnet, err := net.ParseCIDR(addr)
+	if err != nil {
+		log.Fatalf("%s must be parsed", addr)
+	}
+	return ipnet
+}
+
 var (
-	netPrivateClassA *net.IPNet
-	netPrivateClassB *net.IPNet
-	netPrivateClassC *net.IPNet
-	netTestNet       *net.IPNet
-	net6To4Relay     *net.IPNet
+	netPrivateClassA = mustParseCIDR("10.0.0.0/8")
+	netPrivateClassB = mustParseCIDR("172.16.0.0/12")
+	netPrivateClassC = mustParseCIDR("192.168.0.0/16")
+	netTestNet       = mustParseCIDR("192.0.2.0/24")
+	net6To4Relay     = mustParseCIDR("192.88.99.0/24")
 )
 
 func init() {
-	var err error
-	_, netPrivateClassA, err = net.ParseCIDR("10.0.0.0/8")
-	if err != nil {
-		log.Fatalf("10.0.0.0/8 must be parsed")
-	}
-	_, netPrivateClassB, err = net.ParseCIDR("172.16.0.0/12")
-	if err != nil {
-		log.Fatalf("172.16.0.0/12 must be parsed")
-	}
-	_, netPrivateClassC, err = net.ParseCIDR("192.168.0.0/16")
-	if err != nil {
-		log.Fatalf("192.168.0.0/16 must be parsed")
-	}
-	_, netTestNet, err = net.ParseCIDR("192.0.2.0/24")
-	if err != nil {
-		log.Fatalf("192.0.2.0/24 must be parsed")
-	}
-	_, net6To4Relay, err = net.ParseCIDR("192.88.99.0/24")
-	if err != nil {
-		log.Fatalf("192.88.99.0/24 must be parsed")
-	}
-
 	DefaultClient, _, _ = NewClient()
 }
 
