@@ -1,6 +1,7 @@
 package paranoidhttp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -67,15 +68,15 @@ func safeAddr(hostport string) (string, error) {
 //
 // This is used to create a new paranoid http.Client,
 // because I'm not sure about a paranoid behavior for IPv6 connections :(
-func NewDialer(dialer *net.Dialer) func(network, addr string) (net.Conn, error) {
-	return func(network, hostport string) (net.Conn, error) {
+func NewDialer(dialer *net.Dialer) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return func(ctx context.Context, network, hostport string) (net.Conn, error) {
 		switch network {
 		case "tcp", "tcp4":
 			addr, err := safeAddr(hostport)
 			if err != nil {
 				return nil, err
 			}
-			return dialer.Dial("tcp4", addr)
+			return dialer.DialContext(ctx, "tcp4", addr)
 		default:
 			return nil, errors.New("does not support any networks except tcp4")
 		}
@@ -92,7 +93,7 @@ func NewClient() (*http.Client, *http.Transport, *net.Dialer) {
 	}
 	transport := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
-		Dial:                NewDialer(dialer),
+		DialContext:         NewDialer(dialer),
 		TLSHandshakeTimeout: 10 * time.Second,
 	}
 	return &http.Client{
