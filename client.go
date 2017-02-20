@@ -34,7 +34,7 @@ func init() {
 	DefaultClient, _, _ = NewClient()
 }
 
-func safeAddr(ctx context.Context, hostport string) (string, error) {
+func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string) (string, error) {
 	host, port, err := net.SplitHostPort(hostport)
 	if err != nil {
 		return "", err
@@ -52,7 +52,11 @@ func safeAddr(ctx context.Context, hostport string) (string, error) {
 		return "", fmt.Errorf("bad host is detected: %v", host)
 	}
 
-	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	r := resolver
+	if r == nil {
+		r = net.DefaultResolver
+	}
+	addrs, err := r.LookupIPAddr(ctx, host)
 	if err != nil || len(addrs) <= 0 {
 		return "", err
 	}
@@ -72,7 +76,7 @@ func NewDialer(dialer *net.Dialer) func(ctx context.Context, network, addr strin
 	return func(ctx context.Context, network, hostport string) (net.Conn, error) {
 		switch network {
 		case "tcp", "tcp4":
-			addr, err := safeAddr(ctx, hostport)
+			addr, err := safeAddr(ctx, dialer.Resolver, hostport)
 			if err != nil {
 				return nil, err
 			}
