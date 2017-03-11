@@ -34,7 +34,7 @@ func init() {
 	DefaultClient, _, _ = NewClient()
 }
 
-func safeAddr(hostport string) (string, error) {
+func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string) (string, error) {
 	host, port, err := net.SplitHostPort(hostport)
 	if err != nil {
 		return "", err
@@ -52,16 +52,20 @@ func safeAddr(hostport string) (string, error) {
 		return "", fmt.Errorf("bad host is detected: %v", host)
 	}
 
-	ips, err := net.LookupIP(host) // TODO timeout
-	if err != nil || len(ips) <= 0 {
+	r := resolver
+	if r == nil {
+		r = net.DefaultResolver
+	}
+	addrs, err := r.LookupIPAddr(ctx, host)
+	if err != nil || len(addrs) <= 0 {
 		return "", err
 	}
-	for _, ip := range ips {
-		if ip.To4() != nil && isBadIPv4(ip) {
-			return "", fmt.Errorf("bad ip is detected: %v", ip)
+	for _, addr := range addrs {
+		if addr.IP.To4() != nil && isBadIPv4(addr.IP) {
+			return "", fmt.Errorf("bad ip is detected: %v", addr.IP)
 		}
 	}
-	return net.JoinHostPort(ips[0].String(), port), nil
+	return net.JoinHostPort(addrs[0].IP.String(), port), nil
 }
 
 // NewDialer returns a dialer function which only allows IPv4 connections.
@@ -72,7 +76,7 @@ func NewDialer(dialer *net.Dialer) func(ctx context.Context, network, addr strin
 	return func(ctx context.Context, network, hostport string) (net.Conn, error) {
 		switch network {
 		case "tcp", "tcp4":
-			addr, err := safeAddr(hostport)
+			addr, err := safeAddr(ctx, dialer.Resolver, hostport)
 			if err != nil {
 				return nil, err
 			}
