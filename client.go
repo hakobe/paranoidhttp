@@ -60,12 +60,21 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string) (str
 	if err != nil || len(addrs) <= 0 {
 		return "", err
 	}
+	safeAddrs := make([]net.IPAddr, 0, len(addrs))
 	for _, addr := range addrs {
-		if addr.IP.To4() != nil && isBadIPv4(addr.IP) {
+		// only support IPv4 address
+		if addr.IP.To4() == nil {
+			continue
+		}
+		if isBadIPv4(addr.IP) {
 			return "", fmt.Errorf("bad ip is detected: %v", addr.IP)
 		}
+		safeAddrs = append(safeAddrs, addr)
 	}
-	return net.JoinHostPort(addrs[0].IP.String(), port), nil
+	if len(safeAddrs) == 0 {
+		return "", fmt.Errorf("fail to lookup ip addr: %v", host)
+	}
+	return net.JoinHostPort(safeAddrs[0].IP.String(), port), nil
 }
 
 // NewDialer returns a dialer function which only allows IPv4 connections.
