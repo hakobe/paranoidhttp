@@ -28,8 +28,6 @@ dialer.KeepAlive = 60 * time.Second
 ## Known Issues
 
 - Supports only IPv4 (blocks IPv6).
-- The timeout of DNS resolving is not explicitly set (it relies on Operating System settings).
-- The timeout of DNS resolving is not included to the timeout http.Client.
 
 ## Acknowledgement
 
