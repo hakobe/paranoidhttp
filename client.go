@@ -14,30 +14,38 @@ import (
 // DefaultClient is the default Client whose setting is the same as http.DefaultClient.
 var DefaultClient *http.Client
 
-// BadIPError is returned when requested address is not permitted by paranoidhttp.
-type BadIPError struct {
+// badIPError is returned when requested address is not permitted by paranoidhttp.
+type badIPError struct {
 	IP net.IP
 }
 
-func (e *BadIPError) Error() string {
+func (e *badIPError) Error() string {
 	return fmt.Sprintf("bad ip is detected: %v", e.IP)
 }
 
-// BadHostError is returned when requested hostname is not permitted by paranoidhttp.
-type BadHostError struct {
+func (e *badIPError) IsBadIP() bool {
+	return true
+}
+
+// badHostError is returned when requested hostname is not permitted by paranoidhttp.
+type badHostError struct {
 	hostname string
 }
 
-func (e *BadHostError) Error() string {
+func (e *badHostError) Error() string {
 	return fmt.Sprintf("bad host is detected: %v", e.hostname)
 }
 
+func (e *badHostError) IsBadHost() bool {
+	return true
+}
+
 func newBadIPError(ip net.IP) error {
-	return &BadIPError{ip}
+	return &badIPError{ip}
 }
 
 func newBadHostError(hostname string) error {
-	return &BadHostError{hostname}
+	return &badHostError{hostname}
 }
 
 func mustParseCIDR(addr string) *net.IPNet {
