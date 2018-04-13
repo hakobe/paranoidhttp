@@ -14,6 +14,40 @@ import (
 // DefaultClient is the default Client whose setting is the same as http.DefaultClient.
 var DefaultClient *http.Client
 
+// badIPError is returned when requested address is not permitted by paranoidhttp.
+type badIPError struct {
+	IP net.IP
+}
+
+func (e *badIPError) Error() string {
+	return fmt.Sprintf("bad ip is detected: %v", e.IP)
+}
+
+func (e *badIPError) IsBadIP() bool {
+	return true
+}
+
+// badHostError is returned when requested hostname is not permitted by paranoidhttp.
+type badHostError struct {
+	hostname string
+}
+
+func (e *badHostError) Error() string {
+	return fmt.Sprintf("bad host is detected: %v", e.hostname)
+}
+
+func (e *badHostError) IsBadHost() bool {
+	return true
+}
+
+func newBadIPError(ip net.IP) error {
+	return &badIPError{ip}
+}
+
+func newBadHostError(hostname string) error {
+	return &badHostError{hostname}
+}
+
 func mustParseCIDR(addr string) *net.IPNet {
 	_, ipnet, err := net.ParseCIDR(addr)
 	if err != nil {
@@ -43,13 +77,13 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string) (str
 	ip := net.ParseIP(host)
 	if ip != nil {
 		if ip.To4() != nil && isBadIPv4(ip) {
-			return "", fmt.Errorf("bad ip is detected: %v", ip)
+			return "", newBadIPError(ip)
 		}
 		return net.JoinHostPort(ip.String(), port), nil
 	}
 
 	if isBadHost(host) {
-		return "", fmt.Errorf("bad host is detected: %v", host)
+		return "", newBadHostError(host)
 	}
 
 	r := resolver
@@ -67,7 +101,7 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string) (str
 			continue
 		}
 		if isBadIPv4(addr.IP) {
-			return "", fmt.Errorf("bad ip is detected: %v", addr.IP)
+			return "", newBadIPError(addr.IP)
 		}
 		safeAddrs = append(safeAddrs, addr)
 	}
