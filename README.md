@@ -19,10 +19,15 @@ even though redirects or DNS tricks are used.
 res, err := paranoidhttp.DefaultClient.Get("http://www.hatena.ne.jp")
 
 // or customize the client for yourself
-client, transport, dialer := paranoidhttp.NewClient()
+config := paranoidhttp.BasicConfig()
+client, transport, dialer := paranoidhttp.NewClient(config)
 client.Timeout = 10 * time.Second
 transport.DisableCompression = true
 dialer.KeepAlive = 60 * time.Second
+
+// Add an exception
+cidr, err := net.ParseCIDR("127.0.0.1/32")
+config.Exceptions = append(config.Exceptions, cidr)
 ```
 
 ## Known Issues

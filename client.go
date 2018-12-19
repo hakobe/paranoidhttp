@@ -12,7 +12,10 @@ import (
 )
 
 // DefaultClient is the default Client whose setting is the same as http.DefaultClient.
-var DefaultClient *http.Client
+var (
+	DefaultConfig *Config
+	DefaultClient *http.Client
+)
 
 func mustParseCIDR(addr string) *net.IPNet {
 	_, ipnet, err := net.ParseCIDR(addr)
@@ -25,6 +28,7 @@ func mustParseCIDR(addr string) *net.IPNet {
 // Config stores the rules for allowing IP/hosts
 type Config struct {
 	ForbiddenCIDRs []*net.IPNet
+	Exceptions     []*net.IPNet
 	ForbiddenHosts []*regexp.Regexp
 }
 
@@ -44,6 +48,12 @@ func (c *Config) IsIPForbidden(ip net.IP) bool {
 		panic("cannot be called for IPv6")
 	}
 
+	for _, exception := range c.Exceptions {
+		if exception.Contains(ip) {
+			return false
+		}
+	}
+
 	if ip.Equal(net.IPv4bcast) || !ip.IsGlobalUnicast() {
 		return true
 	}
@@ -56,8 +66,8 @@ func (c *Config) IsIPForbidden(ip net.IP) bool {
 	return false
 }
 
-// DefaultConfig contains the most common hosts and IPs to be blocked
-func DefaultConfig() *Config {
+// BasicConfig contains the most common hosts and IPs to be blocked
+func BasicConfig() *Config {
 	return &Config{
 		ForbiddenCIDRs: []*net.IPNet{
 			mustParseCIDR("10.0.0.0/8"),     // private class A
@@ -75,7 +85,8 @@ func DefaultConfig() *Config {
 }
 
 func init() {
-	DefaultClient, _, _ = NewClient(DefaultConfig())
+	DefaultConfig = BasicConfig()
+	DefaultClient, _, _ = NewClient(DefaultConfig)
 }
 
 func safeAddr(ctx context.Context, resolver *net.Resolver, config *Config, hostport string) (string, error) {
