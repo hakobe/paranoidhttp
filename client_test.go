@@ -16,13 +16,15 @@ func TestRequest(t *testing.T) {
 }
 
 func TestIsBadHost(t *testing.T) {
+	config := DefaultConfig()
+
 	badHosts := []string{
 		"localhost",
 		"host has space",
 	}
 
 	for _, h := range badHosts {
-		if !isBadHost(h) {
+		if !config.IsHostForbidden(h) {
 			t.Errorf("%s should be bad", h)
 		}
 	}
@@ -34,13 +36,14 @@ func TestIsBadHost(t *testing.T) {
 	}
 
 	for _, h := range notBadHosts {
-		if isBadHost(h) {
+		if config.IsHostForbidden(h) {
 			t.Errorf("%s should not be bad", h)
 		}
 	}
 }
 
 func TestIsBadIPv4(t *testing.T) {
+	config := DefaultConfig()
 	badIPs := []string{
 		"0.0.0.0",                      // Unspecified
 		"127.0.0.0", "127.255.255.255", // Loopback
@@ -54,7 +57,7 @@ func TestIsBadIPv4(t *testing.T) {
 	}
 
 	for _, ip := range badIPs {
-		if !isBadIPv4(net.ParseIP(ip)) {
+		if !config.IsIPForbidden(net.ParseIP(ip)) {
 			t.Errorf("%s should be bad", ip)
 		}
 	}
@@ -71,7 +74,7 @@ func TestIsBadIPv4(t *testing.T) {
 	}
 
 	for _, ip := range notBadIPs {
-		if isBadIPv4(net.ParseIP(ip)) {
+		if config.IsIPForbidden(net.ParseIP(ip)) {
 			t.Errorf("%s should not be bad", ip)
 		}
 	}
