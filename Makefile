@@ -3,7 +3,7 @@ test: deps
 
 deps:
 	go get -d -v -t ./...
-	go get github.com/golang/lint/golint
+	go get golang.org/x/lint/golint
 
 lint: deps
 	go vet ./...
