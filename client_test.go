@@ -22,7 +22,7 @@ func TestIsHostForbidden(t *testing.T) {
 	}
 
 	for _, h := range badHosts {
-		if !DefaultConfig.IsHostForbidden(h) {
+		if !defaultConfig.IsHostForbidden(h) {
 			t.Errorf("%s should be forbidden", h)
 		}
 	}
@@ -34,7 +34,7 @@ func TestIsHostForbidden(t *testing.T) {
 	}
 
 	for _, h := range notBadHosts {
-		if DefaultConfig.IsHostForbidden(h) {
+		if defaultConfig.IsHostForbidden(h) {
 			t.Errorf("%s should not be forbidden", h)
 		}
 	}
@@ -54,7 +54,7 @@ func TestIsIpForbidden(t *testing.T) {
 	}
 
 	for _, ip := range badIPs {
-		if !DefaultConfig.IsIPForbidden(net.ParseIP(ip)) {
+		if !defaultConfig.IsIPForbidden(net.ParseIP(ip)) {
 			t.Errorf("%s should be forbidden", ip)
 		}
 	}
@@ -71,12 +71,12 @@ func TestIsIpForbidden(t *testing.T) {
 	}
 
 	for _, ip := range notBadIPs {
-		if DefaultConfig.IsIPForbidden(net.ParseIP(ip)) {
+		if defaultConfig.IsIPForbidden(net.ParseIP(ip)) {
 			t.Errorf("%s should not be forbidden", ip)
 		}
 	}
 
-	config := BasicConfig()
+	config := basicConfig()
 	ip := "172.18.0.1"
 	if !config.IsIPForbidden(net.ParseIP(ip)) {
 		t.Errorf("%s should be forbidden", ip)

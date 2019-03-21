@@ -13,7 +13,7 @@ import (
 
 // DefaultClient is the default Client whose setting is the same as http.DefaultClient.
 var (
-	DefaultConfig *Config
+	defaultConfig *config
 	DefaultClient *http.Client
 )
 
@@ -26,14 +26,14 @@ func mustParseCIDR(addr string) *net.IPNet {
 }
 
 // Config stores the rules for allowing IP/hosts
-type Config struct {
+type config struct {
 	ForbiddenCIDRs []*net.IPNet
 	Exceptions     []*net.IPNet
 	ForbiddenHosts []*regexp.Regexp
 }
 
 // IsHostForbidden checks whether a hostname is forbidden by the Config
-func (c *Config) IsHostForbidden(host string) bool {
+func (c *config) IsHostForbidden(host string) bool {
 	for _, forbiddenHost := range c.ForbiddenHosts {
 		if forbiddenHost.MatchString(host) {
 			return true
@@ -43,7 +43,7 @@ func (c *Config) IsHostForbidden(host string) bool {
 }
 
 // IsIPForbidden checks whether an IP address is forbidden by the Config
-func (c *Config) IsIPForbidden(ip net.IP) bool {
+func (c *config) IsIPForbidden(ip net.IP) bool {
 	if ip.To4() == nil {
 		panic("cannot be called for IPv6")
 	}
@@ -67,8 +67,8 @@ func (c *Config) IsIPForbidden(ip net.IP) bool {
 }
 
 // BasicConfig contains the most common hosts and IPs to be blocked
-func BasicConfig() *Config {
-	return &Config{
+func basicConfig() *config {
+	return &config{
 		ForbiddenCIDRs: []*net.IPNet{
 			mustParseCIDR("10.0.0.0/8"),     // private class A
 			mustParseCIDR("172.16.0.0/12"),  // private class B
@@ -85,11 +85,43 @@ func BasicConfig() *Config {
 }
 
 func init() {
-	DefaultConfig = BasicConfig()
-	DefaultClient, _, _ = NewClient(DefaultConfig)
+	defaultConfig = basicConfig()
+	DefaultClient, _, _ = NewClient()
 }
 
-func safeAddr(ctx context.Context, resolver *net.Resolver, config *Config, hostport string) (string, error) {
+// Option type of paranoidhttp
+type Option func(*config)
+
+// ForbiddenCIDRs sets forbidden CIDRs
+func ForbiddenCIDRs(ips ...*net.IPNet) Option {
+	return func(c *config) {
+		c.ForbiddenCIDRs = append(c.ForbiddenCIDRs, ips...)
+	}
+}
+
+// Exceptions set CIDRs for exception
+func Exceptions(ips ...*net.IPNet) Option {
+	return func(c *config) {
+		c.Exceptions = append(c.Exceptions, ips...)
+	}
+}
+
+// ForbiddenHosts set forbidden host rules by regexp
+func ForbiddenHosts(ips ...*regexp.Regexp) Option {
+	return func(c *config) {
+		c.ForbiddenHosts = append(c.ForbiddenHosts, ips...)
+	}
+}
+
+func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts ...Option) (string, error) {
+	c := &config{}
+	if len(opts) == 0 {
+		c = defaultConfig
+	} else {
+		for _, opt := range opts {
+			opt(c)
+		}
+	}
 	host, port, err := net.SplitHostPort(hostport)
 	if err != nil {
 		return "", err
@@ -97,13 +129,13 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, config *Config, hostp
 
 	ip := net.ParseIP(host)
 	if ip != nil {
-		if ip.To4() != nil && config.IsIPForbidden(ip) {
+		if ip.To4() != nil && c.IsIPForbidden(ip) {
 			return "", fmt.Errorf("bad ip is detected: %v", ip)
 		}
 		return net.JoinHostPort(ip.String(), port), nil
 	}
 
-	if config.IsHostForbidden(host) {
+	if c.IsHostForbidden(host) {
 		return "", fmt.Errorf("bad host is detected: %v", host)
 	}
 
@@ -121,7 +153,7 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, config *Config, hostp
 		if addr.IP.To4() == nil {
 			continue
 		}
-		if config.IsIPForbidden(addr.IP) {
+		if c.IsIPForbidden(addr.IP) {
 			return "", fmt.Errorf("bad ip is detected: %v", addr.IP)
 		}
 		safeAddrs = append(safeAddrs, addr)
@@ -136,11 +168,11 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, config *Config, hostp
 //
 // This is used to create a new paranoid http.Client,
 // because I'm not sure about a paranoid behavior for IPv6 connections :(
-func NewDialer(dialer *net.Dialer, config *Config) func(ctx context.Context, network, addr string) (net.Conn, error) {
+func NewDialer(dialer *net.Dialer, opts ...Option) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, hostport string) (net.Conn, error) {
 		switch network {
 		case "tcp", "tcp4":
-			addr, err := safeAddr(ctx, dialer.Resolver, config, hostport)
+			addr, err := safeAddr(ctx, dialer.Resolver, hostport, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -154,14 +186,14 @@ func NewDialer(dialer *net.Dialer, config *Config) func(ctx context.Context, net
 // NewClient returns a new http.Client configured to be paranoid for attackers.
 //
 // This also returns http.Tranport and net.Dialer so that you can customize those behavior.
-func NewClient(config *Config) (*http.Client, *http.Transport, *net.Dialer) {
+func NewClient(opts ...Option) (*http.Client, *http.Transport, *net.Dialer) {
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
 	transport := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
-		DialContext:         NewDialer(dialer, config),
+		DialContext:         NewDialer(dialer, opts...),
 		TLSHandshakeTimeout: 10 * time.Second,
 	}
 	return &http.Client{
