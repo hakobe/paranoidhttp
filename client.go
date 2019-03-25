@@ -11,9 +11,16 @@ import (
 	"time"
 )
 
+// Config stores the rules for allowing IP/hosts
+type config struct {
+	ForbiddenCIDRs []*net.IPNet
+	AllowCIDRs     []*net.IPNet
+	ForbiddenHosts []*regexp.Regexp
+}
+
 // DefaultClient is the default Client whose setting is the same as http.DefaultClient.
 var (
-	defaultConfig *config
+	defaultConfig config
 	DefaultClient *http.Client
 )
 
@@ -25,15 +32,25 @@ func mustParseCIDR(addr string) *net.IPNet {
 	return ipnet
 }
 
-// Config stores the rules for allowing IP/hosts
-type config struct {
-	ForbiddenCIDRs []*net.IPNet
-	Exceptions     []*net.IPNet
-	ForbiddenHosts []*regexp.Regexp
+func init() {
+	defaultConfig = config{
+		ForbiddenCIDRs: []*net.IPNet{
+			mustParseCIDR("10.0.0.0/8"),     // private class A
+			mustParseCIDR("172.16.0.0/12"),  // private class B
+			mustParseCIDR("192.168.0.0/16"), // private class C
+			mustParseCIDR("192.0.2.0/24"),   // test net 1
+			mustParseCIDR("192.88.99.0/24"), // 6to4 relay
+		},
+		ForbiddenHosts: []*regexp.Regexp{
+			regexp.MustCompile(`(?i)^localhost$`),
+			regexp.MustCompile(`(?i)\s+`),
+		},
+	}
+	DefaultClient, _, _ = NewClient()
 }
 
-// IsHostForbidden checks whether a hostname is forbidden by the Config
-func (c *config) IsHostForbidden(host string) bool {
+// isHostForbidden checks whether a hostname is forbidden by the Config
+func (c *config) isHostForbidden(host string) bool {
 	for _, forbiddenHost := range c.ForbiddenHosts {
 		if forbiddenHost.MatchString(host) {
 			return true
@@ -42,14 +59,14 @@ func (c *config) IsHostForbidden(host string) bool {
 	return false
 }
 
-// IsIPForbidden checks whether an IP address is forbidden by the Config
-func (c *config) IsIPForbidden(ip net.IP) bool {
+// isIPForbidden checks whether an IP address is forbidden by the Config
+func (c *config) isIPForbidden(ip net.IP) bool {
 	if ip.To4() == nil {
 		panic("cannot be called for IPv6")
 	}
 
-	for _, exception := range c.Exceptions {
-		if exception.Contains(ip) {
+	for _, allowCIDR := range c.AllowCIDRs {
+		if allowCIDR.Contains(ip) {
 			return false
 		}
 	}
@@ -68,25 +85,8 @@ func (c *config) IsIPForbidden(ip net.IP) bool {
 
 // BasicConfig contains the most common hosts and IPs to be blocked
 func basicConfig() *config {
-	return &config{
-		ForbiddenCIDRs: []*net.IPNet{
-			mustParseCIDR("10.0.0.0/8"),     // private class A
-			mustParseCIDR("172.16.0.0/12"),  // private class B
-			mustParseCIDR("192.168.0.0/16"), // private class C
-			mustParseCIDR("192.0.2.0/24"),   // test net 1
-			mustParseCIDR("192.88.99.0/24"), // 6to4 relay
-		},
-
-		ForbiddenHosts: []*regexp.Regexp{
-			regexp.MustCompile("(?i)^localhost$"),
-			regexp.MustCompile("(?i)\\s+"),
-		},
-	}
-}
-
-func init() {
-	defaultConfig = basicConfig()
-	DefaultClient, _, _ = NewClient()
+	c := defaultConfig // copy to return clone
+	return &c
 }
 
 // Option type of paranoidhttp
@@ -95,32 +95,29 @@ type Option func(*config)
 // ForbiddenCIDRs sets forbidden CIDRs
 func ForbiddenCIDRs(ips ...*net.IPNet) Option {
 	return func(c *config) {
-		c.ForbiddenCIDRs = append(c.ForbiddenCIDRs, ips...)
+		c.ForbiddenCIDRs = ips
 	}
 }
 
-// Exceptions set CIDRs for exception
-func Exceptions(ips ...*net.IPNet) Option {
+// AllowCIDRs sets allow CIDRs
+// It takes priority over other forbidden rules.
+func AllowCIDRs(ips ...*net.IPNet) Option {
 	return func(c *config) {
-		c.Exceptions = append(c.Exceptions, ips...)
+		c.AllowCIDRs = ips
 	}
 }
 
 // ForbiddenHosts set forbidden host rules by regexp
-func ForbiddenHosts(ips ...*regexp.Regexp) Option {
+func ForbiddenHosts(hostRegs ...*regexp.Regexp) Option {
 	return func(c *config) {
-		c.ForbiddenHosts = append(c.ForbiddenHosts, ips...)
+		c.ForbiddenHosts = hostRegs
 	}
 }
 
 func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts ...Option) (string, error) {
-	c := &config{}
-	if len(opts) == 0 {
-		c = defaultConfig
-	} else {
-		for _, opt := range opts {
-			opt(c)
-		}
+	c := basicConfig()
+	for _, opt := range opts {
+		opt(c)
 	}
 	host, port, err := net.SplitHostPort(hostport)
 	if err != nil {
@@ -129,13 +126,13 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts
 
 	ip := net.ParseIP(host)
 	if ip != nil {
-		if ip.To4() != nil && c.IsIPForbidden(ip) {
+		if ip.To4() != nil && c.isIPForbidden(ip) {
 			return "", fmt.Errorf("bad ip is detected: %v", ip)
 		}
 		return net.JoinHostPort(ip.String(), port), nil
 	}
 
-	if c.IsHostForbidden(host) {
+	if c.isHostForbidden(host) {
 		return "", fmt.Errorf("bad host is detected: %v", host)
 	}
 
@@ -153,7 +150,7 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts
 		if addr.IP.To4() == nil {
 			continue
 		}
-		if c.IsIPForbidden(addr.IP) {
+		if c.isIPForbidden(addr.IP) {
 			return "", fmt.Errorf("bad ip is detected: %v", addr.IP)
 		}
 		safeAddrs = append(safeAddrs, addr)

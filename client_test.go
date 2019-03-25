@@ -22,7 +22,7 @@ func TestIsHostForbidden(t *testing.T) {
 	}
 
 	for _, h := range badHosts {
-		if !defaultConfig.IsHostForbidden(h) {
+		if !basicConfig().isHostForbidden(h) {
 			t.Errorf("%s should be forbidden", h)
 		}
 	}
@@ -34,7 +34,7 @@ func TestIsHostForbidden(t *testing.T) {
 	}
 
 	for _, h := range notBadHosts {
-		if defaultConfig.IsHostForbidden(h) {
+		if basicConfig().isHostForbidden(h) {
 			t.Errorf("%s should not be forbidden", h)
 		}
 	}
@@ -54,7 +54,7 @@ func TestIsIpForbidden(t *testing.T) {
 	}
 
 	for _, ip := range badIPs {
-		if !defaultConfig.IsIPForbidden(net.ParseIP(ip)) {
+		if !basicConfig().isIPForbidden(net.ParseIP(ip)) {
 			t.Errorf("%s should be forbidden", ip)
 		}
 	}
@@ -71,19 +71,19 @@ func TestIsIpForbidden(t *testing.T) {
 	}
 
 	for _, ip := range notBadIPs {
-		if defaultConfig.IsIPForbidden(net.ParseIP(ip)) {
+		if basicConfig().isIPForbidden(net.ParseIP(ip)) {
 			t.Errorf("%s should not be forbidden", ip)
 		}
 	}
 
-	config := basicConfig()
+	c := basicConfig()
 	ip := "172.18.0.1"
-	if !config.IsIPForbidden(net.ParseIP(ip)) {
+	if !c.isIPForbidden(net.ParseIP(ip)) {
 		t.Errorf("%s should be forbidden", ip)
 	}
 
-	config.Exceptions = append(config.Exceptions, mustParseCIDR("172.18.0.1/32"))
-	if config.IsIPForbidden(net.ParseIP(ip)) {
+	c.AllowCIDRs = append(c.AllowCIDRs, mustParseCIDR("172.18.0.1/32"))
+	if c.isIPForbidden(net.ParseIP(ip)) {
 		t.Errorf("%s should not be forbidden", ip)
 	}
 }
