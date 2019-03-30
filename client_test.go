@@ -1,7 +1,9 @@
 package paranoidhttp
 
-import "testing"
-import "net"
+import (
+	"net"
+	"testing"
+)
 
 func TestRequest(t *testing.T) {
 	resp, err := DefaultClient.Get("http://www.example.org")
