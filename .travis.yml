@@ -1,7 +1,9 @@
 language: go
 go:
-- 1.9
+- "1.10"
 - tip
 script:
 - make lint
 - make test
+after_script:
+- make cover
