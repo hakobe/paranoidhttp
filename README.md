@@ -1,6 +1,14 @@
 # Paranoidhttp
 
-[![Build Status](https://travis-ci.org/hakobe/paranoidhttp.svg?branch=master)](https://travis-ci.org/hakobe/paranoidhttp)
+[![Build Status](https://travis-ci.org/hakobe/paranoidhttp.svg?branch=master)][travis]
+[![Coverage Status](https://coveralls.io/repos/hakobe/paranoidhttp/badge.svg?branch=master)][coveralls]
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
+[![GoDoc](https://godoc.org/github.com/hakobe/paranoidhttp?status.svg)][godoc]
+
+[travis]: https://travis-ci.org/hakobe/paranoidhttp
+[coveralls]: https://coveralls.io/r/hakobe/paranoidhttp?branch=master
+[license]: https://github.com/hakobe/paranoidhttp/blob/master/LICENSE
+[godoc]: https://godoc.org/github.com/hakobe/paranoidhttp
 
 Paranoidhttp provides a pre-configured http.Client that protects you from harm.
 
@@ -19,15 +27,15 @@ even though redirects or DNS tricks are used.
 res, err := paranoidhttp.DefaultClient.Get("http://www.hatena.ne.jp")
 
 // or customize the client for yourself
-config := paranoidhttp.BasicConfig()
-client, transport, dialer := paranoidhttp.NewClient(config)
+client, transport, dialer := paranoidhttp.NewClient()
 client.Timeout = 10 * time.Second
 transport.DisableCompression = true
 dialer.KeepAlive = 60 * time.Second
 
-// Add an exception
-cidr, err := net.ParseCIDR("127.0.0.1/32")
-config.Exceptions = append(config.Exceptions, cidr)
+// Add an allow ipnets with functional option
+ipNets, err := net.ParseCIDR("127.0.0.1/32")
+client, _, _ := paranoidhttp.New(
+    paranoidhttp.AlloIPNets(ipNets))
 ```
 
 ## Known Issues
