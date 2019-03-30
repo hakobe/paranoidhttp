@@ -82,7 +82,7 @@ func TestIsIpForbidden(t *testing.T) {
 		t.Errorf("%s should be forbidden", ip)
 	}
 
-	c.AllowCIDRs = append(c.AllowCIDRs, mustParseCIDR("172.18.0.1/32"))
+	c.AllowIPNets = append(c.AllowIPNets, mustParseCIDR("172.18.0.1/32"))
 	if c.isIPForbidden(net.ParseIP(ip)) {
 		t.Errorf("%s should not be forbidden", ip)
 	}

@@ -13,9 +13,9 @@ import (
 
 // Config stores the rules for allowing IP/hosts
 type config struct {
-	ForbiddenCIDRs []*net.IPNet
-	AllowCIDRs     []*net.IPNet
-	ForbiddenHosts []*regexp.Regexp
+	ForbiddenIPNets []*net.IPNet
+	AllowIPNets     []*net.IPNet
+	ForbiddenHosts  []*regexp.Regexp
 }
 
 // DefaultClient is the default Client whose setting is the same as http.DefaultClient.
@@ -34,7 +34,7 @@ func mustParseCIDR(addr string) *net.IPNet {
 
 func init() {
 	defaultConfig = config{
-		ForbiddenCIDRs: []*net.IPNet{
+		ForbiddenIPNets: []*net.IPNet{
 			mustParseCIDR("10.0.0.0/8"),     // private class A
 			mustParseCIDR("172.16.0.0/12"),  // private class B
 			mustParseCIDR("192.168.0.0/16"), // private class C
@@ -65,8 +65,8 @@ func (c *config) isIPForbidden(ip net.IP) bool {
 		panic("cannot be called for IPv6")
 	}
 
-	for _, allowCIDR := range c.AllowCIDRs {
-		if allowCIDR.Contains(ip) {
+	for _, allowIPNet := range c.AllowIPNets {
+		if allowIPNet.Contains(ip) {
 			return false
 		}
 	}
@@ -75,8 +75,8 @@ func (c *config) isIPForbidden(ip net.IP) bool {
 		return true
 	}
 
-	for _, forbiddenCIDR := range c.ForbiddenCIDRs {
-		if forbiddenCIDR.Contains(ip) {
+	for _, forbiddenIPNet := range c.ForbiddenIPNets {
+		if forbiddenIPNet.Contains(ip) {
 			return true
 		}
 	}
@@ -92,18 +92,18 @@ func basicConfig() *config {
 // Option type of paranoidhttp
 type Option func(*config)
 
-// ForbiddenCIDRs sets forbidden CIDRs
-func ForbiddenCIDRs(ips ...*net.IPNet) Option {
+// ForbiddenIPNets sets forbidden IPNets
+func ForbiddenIPNets(ips ...*net.IPNet) Option {
 	return func(c *config) {
-		c.ForbiddenCIDRs = ips
+		c.ForbiddenIPNets = ips
 	}
 }
 
-// AllowCIDRs sets allow CIDRs
+// AllowIPNets sets allow IPNets
 // It takes priority over other forbidden rules.
-func AllowCIDRs(ips ...*net.IPNet) Option {
+func AllowIPNets(ips ...*net.IPNet) Option {
 	return func(c *config) {
-		c.AllowCIDRs = ips
+		c.AllowIPNets = ips
 	}
 }
 
