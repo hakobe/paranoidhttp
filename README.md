@@ -33,9 +33,9 @@ transport.DisableCompression = true
 dialer.KeepAlive = 60 * time.Second
 
 // Add an allow ipnets with functional option
-ipNets, err := net.ParseCIDR("127.0.0.1/32")
+ipNet, _ := net.ParseCIDR("127.0.0.1/32")
 client, _, _ := paranoidhttp.New(
-    paranoidhttp.AlloIPNets(ipNets))
+    paranoidhttp.AlloIPNets(ipNet))
 ```
 
 ## Known Issues
