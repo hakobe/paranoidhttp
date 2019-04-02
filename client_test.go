@@ -15,17 +15,21 @@ func TestRequest(t *testing.T) {
 	if err == nil {
 		t.Errorf("The request for localhost should be fail")
 	}
+
+	if _, err := DefaultClient.Get("http://192.168.0.1"); err == nil {
+		t.Errorf("The request for localhost should be fail")
+	}
 }
 
-func TestIsBadHost(t *testing.T) {
+func TestIsHostForbidden(t *testing.T) {
 	badHosts := []string{
 		"localhost",
 		"host has space",
 	}
 
 	for _, h := range badHosts {
-		if !isBadHost(h) {
-			t.Errorf("%s should be bad", h)
+		if !basicConfig().isHostForbidden(h) {
+			t.Errorf("%s should be forbidden", h)
 		}
 	}
 
@@ -36,13 +40,13 @@ func TestIsBadHost(t *testing.T) {
 	}
 
 	for _, h := range notBadHosts {
-		if isBadHost(h) {
-			t.Errorf("%s should not be bad", h)
+		if basicConfig().isHostForbidden(h) {
+			t.Errorf("%s should not be forbidden", h)
 		}
 	}
 }
 
-func TestIsBadIPv4(t *testing.T) {
+func TestIsIpForbidden(t *testing.T) {
 	badIPs := []string{
 		"0.0.0.0",                      // Unspecified
 		"127.0.0.0", "127.255.255.255", // Loopback
@@ -56,8 +60,8 @@ func TestIsBadIPv4(t *testing.T) {
 	}
 
 	for _, ip := range badIPs {
-		if !isBadIPv4(net.ParseIP(ip)) {
-			t.Errorf("%s should be bad", ip)
+		if !basicConfig().isIPForbidden(net.ParseIP(ip)) {
+			t.Errorf("%s should be forbidden", ip)
 		}
 	}
 
@@ -73,8 +77,19 @@ func TestIsBadIPv4(t *testing.T) {
 	}
 
 	for _, ip := range notBadIPs {
-		if isBadIPv4(net.ParseIP(ip)) {
-			t.Errorf("%s should not be bad", ip)
+		if basicConfig().isIPForbidden(net.ParseIP(ip)) {
+			t.Errorf("%s should not be forbidden", ip)
 		}
+	}
+
+	c := basicConfig()
+	ip := "172.18.0.1"
+	if !c.isIPForbidden(net.ParseIP(ip)) {
+		t.Errorf("%s should be forbidden", ip)
+	}
+
+	c.PermittedIPNets = append(c.PermittedIPNets, mustParseCIDR("172.18.0.1/32"))
+	if c.isIPForbidden(net.ParseIP(ip)) {
+		t.Errorf("%s should not be forbidden", ip)
 	}
 }

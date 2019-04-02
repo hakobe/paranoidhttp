@@ -1,6 +1,14 @@
 # Paranoidhttp
 
-[![Build Status](https://travis-ci.org/hakobe/paranoidhttp.svg?branch=master)](https://travis-ci.org/hakobe/paranoidhttp)
+[![Build Status](https://travis-ci.org/hakobe/paranoidhttp.svg?branch=master)][travis]
+[![Coverage Status](https://coveralls.io/repos/hakobe/paranoidhttp/badge.svg?branch=master)][coveralls]
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
+[![GoDoc](https://godoc.org/github.com/hakobe/paranoidhttp?status.svg)][godoc]
+
+[travis]: https://travis-ci.org/hakobe/paranoidhttp
+[coveralls]: https://coveralls.io/r/hakobe/paranoidhttp?branch=master
+[license]: https://github.com/hakobe/paranoidhttp/blob/master/LICENSE
+[godoc]: https://godoc.org/github.com/hakobe/paranoidhttp
 
 Paranoidhttp provides a pre-configured http.Client that protects you from harm.
 
@@ -23,6 +31,11 @@ client, transport, dialer := paranoidhttp.NewClient()
 client.Timeout = 10 * time.Second
 transport.DisableCompression = true
 dialer.KeepAlive = 60 * time.Second
+
+// Add an permitted ipnets with functional option
+ipNet, _ := net.ParseCIDR("127.0.0.1/32")
+client, _, _ := paranoidhttp.New(
+    paranoidhttp.PermittedIPNets(ipNet))
 ```
 
 ## Known Issues
