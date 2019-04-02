@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.2.0](https://github.com/hakobe/paranoidhttp/compare/v0.1.0...v0.2.0) (2019-04-02)
+
+* Make the list of cidrs and hosts configurable [#10](https://github.com/hakobe/paranoidhttp/pull/10) ([Songmu](https://github.com/Songmu))
+
 ## [v0.1.0](https://github.com/hakobe/paranoidhttp/compare/6495e8792661...v0.1.0) (2019-03-31)
 
 * adjust releng files [#11](https://github.com/hakobe/paranoidhttp/pull/11) ([Songmu](https://github.com/Songmu))
