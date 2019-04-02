@@ -13,7 +13,7 @@ import (
 // Config stores the rules for allowing IP/hosts
 type config struct {
 	ForbiddenIPNets []*net.IPNet
-	AllowIPNets     []*net.IPNet
+	PermittedIPNets []*net.IPNet
 	ForbiddenHosts  []*regexp.Regexp
 }
 
@@ -60,8 +60,8 @@ func (c *config) isHostForbidden(host string) bool {
 
 // isIPForbidden checks whether an IP address is forbidden by the Config
 func (c *config) isIPForbidden(ip net.IP) bool {
-	for _, allowIPNet := range c.AllowIPNets {
-		if allowIPNet.Contains(ip) {
+	for _, permittedIPNet := range c.PermittedIPNets {
+		if permittedIPNet.Contains(ip) {
 			return false
 		}
 	}
@@ -94,11 +94,11 @@ func ForbiddenIPNets(ips ...*net.IPNet) Option {
 	}
 }
 
-// AllowIPNets sets allow IPNets
+// PermittedIPNets sets permitted IPNets
 // It takes priority over other forbidden rules.
-func AllowIPNets(ips ...*net.IPNet) Option {
+func PermittedIPNets(ips ...*net.IPNet) Option {
 	return func(c *config) {
-		c.AllowIPNets = ips
+		c.PermittedIPNets = ips
 	}
 }
 
@@ -156,7 +156,7 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts
 	return net.JoinHostPort(safeAddrs[0].IP.String(), port), nil
 }
 
-// NewDialer returns a dialer function which only allows IPv4 connections.
+// NewDialer returns a dialer function which only accepts IPv4 connections.
 //
 // This is used to create a new paranoid http.Client,
 // because I'm not sure about a paranoid behavior for IPv6 connections :(
