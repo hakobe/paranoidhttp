@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"regexp"
@@ -27,7 +26,7 @@ var (
 func mustParseCIDR(addr string) *net.IPNet {
 	_, ipnet, err := net.ParseCIDR(addr)
 	if err != nil {
-		log.Fatalf("%s must be parsed", addr)
+		panic(`net: ParseCIDR("` + addr + `"): ` + err.Error())
 	}
 	return ipnet
 }
@@ -61,10 +60,6 @@ func (c *config) isHostForbidden(host string) bool {
 
 // isIPForbidden checks whether an IP address is forbidden by the Config
 func (c *config) isIPForbidden(ip net.IP) bool {
-	if ip.To4() == nil {
-		panic("cannot be called for IPv6")
-	}
-
 	for _, allowIPNet := range c.AllowIPNets {
 		if allowIPNet.Contains(ip) {
 			return false
