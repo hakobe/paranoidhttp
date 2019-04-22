@@ -19,6 +19,10 @@ func TestRequest(t *testing.T) {
 	if _, err := DefaultClient.Get("http://192.168.0.1"); err == nil {
 		t.Errorf("The request for localhost should be fail")
 	}
+
+	if _, err := DefaultClient.Get("http://[::]"); err == nil {
+		t.Errorf("The request for IPv6 unspecified address should be fail")
+	}
 }
 
 func TestIsHostForbidden(t *testing.T) {
