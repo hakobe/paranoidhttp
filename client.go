@@ -121,7 +121,7 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts
 
 	ip := net.ParseIP(host)
 	if ip != nil {
-		if ip.To4() != nil && c.isIPForbidden(ip) {
+		if ip.IsUnspecified() || (ip.To4() != nil && c.isIPForbidden(ip)) {
 			return "", fmt.Errorf("bad ip is detected: %v", ip)
 		}
 		return net.JoinHostPort(ip.String(), port), nil
