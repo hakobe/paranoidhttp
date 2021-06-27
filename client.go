@@ -66,7 +66,7 @@ func (c *config) isIPForbidden(ip net.IP) bool {
 		}
 	}
 
-	if ip.Equal(net.IPv4bcast) || !ip.IsGlobalUnicast() {
+	if !ip.IsGlobalUnicast() {
 		return true
 	}
 
