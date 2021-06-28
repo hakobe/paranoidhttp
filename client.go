@@ -32,23 +32,38 @@ func mustParseCIDR(addr string) *net.IPNet {
 }
 
 func init() {
+	forbiddenIPs := []string{
+		//IPv4
+		"10.0.0.0/8",     // private class A
+		"172.16.0.0/12",  // private class B
+		"192.168.0.0/16", // private class C
+		"192.0.2.0/24",   // test net 1
+		"192.88.99.0/24", // 6to4 relay
+
+		// ipv6
+		// block everything except 2000::/3 according to rfc2373#section-2.4
+		"0000::/3", // 0000-0010
+		"4000::/2", // 0100-1000
+		"8000::/1", // 1000-1111
+		//v6 special ranges inside 2000::/3
+		"2001::/32",     // Teredo tunneling
+		"2001:10::/28",  // Deprecated (previously ORCHID)
+		"2001:20::/28",  // ORCHIDv2
+		"2001:db8::/32", // Addresses used in documentation and example source code
+		"2002::/16",     // 6to4
+	}
+
 	defaultConfig = config{
-		ForbiddenIPNets: []*net.IPNet{
-			mustParseCIDR("10.0.0.0/8"),     // private class A
-			mustParseCIDR("172.16.0.0/12"),  // private class B
-			mustParseCIDR("192.168.0.0/16"), // private class C
-			mustParseCIDR("192.0.2.0/24"),   // test net 1
-			mustParseCIDR("192.88.99.0/24"), // 6to4 relay
-			// for ipv6 block everything except 2000::/3 according to rfc2373#section-2.4
-			mustParseCIDR("0000::/3"), // 0000-0010
-			mustParseCIDR("4000::/2"), // 0100-1000
-			mustParseCIDR("8000::/1"), // 1000-1111
-		},
+		ForbiddenIPNets: make([]*net.IPNet, len(forbiddenIPs)),
 		ForbiddenHosts: []*regexp.Regexp{
 			regexp.MustCompile(`(?i)^localhost$`),
 			regexp.MustCompile(`(?i)\s+`),
 		},
 	}
+	for n, i := range forbiddenIPs {
+		defaultConfig.ForbiddenIPNets[n] = mustParseCIDR(i)
+	}
+
 	DefaultClient, _, _ = NewClient()
 }
 
