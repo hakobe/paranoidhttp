@@ -39,6 +39,10 @@ func init() {
 			mustParseCIDR("192.168.0.0/16"), // private class C
 			mustParseCIDR("192.0.2.0/24"),   // test net 1
 			mustParseCIDR("192.88.99.0/24"), // 6to4 relay
+			// for ipv6 block everything except 2000::/3 according to rfc2373#section-2.4
+			mustParseCIDR("0000::/3"), // 0000-0010
+			mustParseCIDR("4000::/2"), // 0100-1000
+			mustParseCIDR("8000::/1"), // 1000-1111
 		},
 		ForbiddenHosts: []*regexp.Regexp{
 			regexp.MustCompile(`(?i)^localhost$`),
@@ -121,7 +125,7 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts
 
 	ip := net.ParseIP(host)
 	if ip != nil {
-		if ip.IsUnspecified() || (ip.To4() != nil && c.isIPForbidden(ip)) {
+		if ip.IsUnspecified() || c.isIPForbidden(ip) {
 			return "", fmt.Errorf("bad ip is detected: %v", ip)
 		}
 		return net.JoinHostPort(ip.String(), port), nil
@@ -141,10 +145,6 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts
 	}
 	safeAddrs := make([]net.IPAddr, 0, len(addrs))
 	for _, addr := range addrs {
-		// only support IPv4 address
-		if addr.IP.To4() == nil {
-			continue
-		}
 		if c.isIPForbidden(addr.IP) {
 			return "", fmt.Errorf("bad ip is detected: %v", addr.IP)
 		}
@@ -156,21 +156,20 @@ func safeAddr(ctx context.Context, resolver *net.Resolver, hostport string, opts
 	return net.JoinHostPort(safeAddrs[0].IP.String(), port), nil
 }
 
-// NewDialer returns a dialer function which only accepts IPv4 connections.
+// NewDialer returns a dialer function which only accepts connections to secure hosts.
 //
 // This is used to create a new paranoid http.Client,
-// because I'm not sure about a paranoid behavior for IPv6 connections :(
 func NewDialer(dialer *net.Dialer, opts ...Option) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, hostport string) (net.Conn, error) {
 		switch network {
-		case "tcp", "tcp4":
+		case "tcp", "tcp4", "tcp6":
 			addr, err := safeAddr(ctx, dialer.Resolver, hostport, opts...)
 			if err != nil {
 				return nil, err
 			}
-			return dialer.DialContext(ctx, "tcp4", addr)
+			return dialer.DialContext(ctx, network, addr)
 		default:
-			return nil, errors.New("does not support any networks except tcp4")
+			return nil, errors.New("does not support any networks except tcp")
 		}
 	}
 }
