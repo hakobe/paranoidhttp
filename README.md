@@ -15,7 +15,7 @@ Paranoidhttp provides a pre-configured http.Client that protects you from harm.
 ## Description
 
 Paranoidhttp is a factory of http.Client that is paranoid againt attackers.
-This is useful when you craete a HTTP request using inputs from possibly malicious users.
+This is useful when you create an HTTP request using inputs from possibly malicious users.
 
 The created http.Client protects you from connecting to internal IP ranges
 even though redirects or DNS tricks are used.
@@ -37,10 +37,6 @@ ipNet, _ := net.ParseCIDR("127.0.0.1/32")
 client, _, _ := paranoidhttp.New(
     paranoidhttp.PermittedIPNets(ipNet))
 ```
-
-## Known Issues
-
-- Supports only IPv4 (blocks IPv6).
 
 ## Acknowledgement
 
