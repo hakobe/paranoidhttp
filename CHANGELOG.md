@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.3.0](https://github.com/hakobe/paranoidhttp/compare/v0.2.0...v0.3.0) (2023-01-19)
+
+* Support ipv6 in README [#16](https://github.com/hakobe/paranoidhttp/pull/16) ([karmanyaahm](https://github.com/karmanyaahm))
+* Add IPv6 support [#15](https://github.com/hakobe/paranoidhttp/pull/15) ([karmanyaahm](https://github.com/karmanyaahm))
+* Fix IPv6 unspecified address [#12](https://github.com/hakobe/paranoidhttp/pull/12) ([mvisat](https://github.com/mvisat))
+
 ## [v0.2.0](https://github.com/hakobe/paranoidhttp/compare/v0.1.0...v0.2.0) (2019-04-02)
 
 * Make the list of cidrs and hosts configurable [#10](https://github.com/hakobe/paranoidhttp/pull/10) ([Songmu](https://github.com/Songmu))
