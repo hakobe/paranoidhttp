@@ -1,9 +1,0 @@
-language: go
-go:
-- "1.12"
-- tip
-script:
-- make lint
-- make test
-after_script:
-- make cover

@@ -1,6 +1,6 @@
 # Paranoidhttp
 
-[![Build Status](https://travis-ci.org/hakobe/paranoidhttp.svg?branch=master)][travis]
+[![test](https://github.com/hakobe/paranoidhttp/actions/workflows/test.yml/badge.svg)](https://github.com/hakobe/paranoidhttp/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/hakobe/paranoidhttp/badge.svg?branch=master)][coveralls]
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
 [![GoDoc](https://godoc.org/github.com/hakobe/paranoidhttp?status.svg)][godoc]
