@@ -3,12 +3,12 @@
 [![test](https://github.com/hakobe/paranoidhttp/actions/workflows/test.yml/badge.svg)](https://github.com/hakobe/paranoidhttp/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/hakobe/paranoidhttp/badge.svg?branch=master)][coveralls]
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
-[![GoDoc](https://godoc.org/github.com/hakobe/paranoidhttp?status.svg)][godoc]
+[![GoDoc](https://pkg.go.dev/badge/github.com/hakobe/paranoidhttp)][godoc]
 
 [travis]: https://travis-ci.org/hakobe/paranoidhttp
 [coveralls]: https://coveralls.io/r/hakobe/paranoidhttp?branch=master
 [license]: https://github.com/hakobe/paranoidhttp/blob/master/LICENSE
-[godoc]: https://godoc.org/github.com/hakobe/paranoidhttp
+[godoc]: https://pkg.go.dev/github.com/hakobe/paranoidhttp
 
 Paranoidhttp provides a pre-configured http.Client that protects you from harm.
 
