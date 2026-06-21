@@ -103,13 +103,33 @@ func basicConfig() *config {
 	return &c
 }
 
+// DefaultForbiddenIPNets returns a copy of the IPNets that are forbidden by
+// default, so callers can inspect or build on them without redeclaring the
+// CIDRs that paranoidhttp already blocks.
+func DefaultForbiddenIPNets() []*net.IPNet {
+	ips := make([]*net.IPNet, len(defaultConfig.ForbiddenIPNets))
+	copy(ips, defaultConfig.ForbiddenIPNets)
+	return ips
+}
+
 // Option type of paranoidhttp
 type Option func(*config)
 
-// ForbiddenIPNets sets forbidden IPNets
+// ForbiddenIPNets replaces the forbidden IPNets entirely, discarding the
+// default list. Use AddForbiddenIPNets to extend the defaults instead.
 func ForbiddenIPNets(ips ...*net.IPNet) Option {
 	return func(c *config) {
 		c.ForbiddenIPNets = ips
+	}
+}
+
+// AddForbiddenIPNets appends ips to the existing forbidden IPNets instead of
+// replacing them, so the default list stays in effect alongside the
+// additions. If combined with ForbiddenIPNets, order matters: apply
+// ForbiddenIPNets first to start from a known base.
+func AddForbiddenIPNets(ips ...*net.IPNet) Option {
+	return func(c *config) {
+		c.ForbiddenIPNets = append(c.ForbiddenIPNets, ips...)
 	}
 }
 

@@ -36,6 +36,14 @@ dialer.KeepAlive = 60 * time.Second
 ipNet, _ := net.ParseCIDR("127.0.0.1/32")
 client, _, _ := paranoidhttp.New(
     paranoidhttp.PermittedIPNets(ipNet))
+
+// Extend the default forbidden ipnets instead of replacing them
+_, extraNet, _ := net.ParseCIDR("100.64.0.0/10")
+client, _, _ := paranoidhttp.NewClient(
+    paranoidhttp.AddForbiddenIPNets(extraNet))
+
+// Inspect the default forbidden ipnets
+defaults := paranoidhttp.DefaultForbiddenIPNets()
 ```
 
 ## Acknowledgement
