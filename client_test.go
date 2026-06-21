@@ -108,3 +108,34 @@ func TestIsIpForbidden(t *testing.T) {
 		t.Errorf("%s should not be forbidden", ip)
 	}
 }
+
+func TestDefaultForbiddenIPNets(t *testing.T) {
+	defaults := DefaultForbiddenIPNets()
+	if len(defaults) != len(defaultConfig.ForbiddenIPNets) {
+		t.Fatalf("expected %d default forbidden IPNets, got %d", len(defaultConfig.ForbiddenIPNets), len(defaults))
+	}
+
+	// mutating the returned slice must not affect the real defaults
+	defaults[0] = mustParseCIDR("8.8.8.8/32")
+	if defaultConfig.ForbiddenIPNets[0].String() == defaults[0].String() {
+		t.Errorf("DefaultForbiddenIPNets should return a copy, not a reference to the internal slice")
+	}
+}
+
+func TestAddForbiddenIPNets(t *testing.T) {
+	c := basicConfig()
+	extra := mustParseCIDR("203.0.113.0/24") // TEST-NET-3, not blocked by default
+	if c.isIPForbidden(net.ParseIP("203.0.113.1")) {
+		t.Fatalf("203.0.113.1 should not be forbidden by default")
+	}
+
+	AddForbiddenIPNets(extra)(c)
+
+	if !c.isIPForbidden(net.ParseIP("203.0.113.1")) {
+		t.Errorf("203.0.113.1 should be forbidden after AddForbiddenIPNets")
+	}
+	// defaults should still be in effect
+	if !c.isIPForbidden(net.ParseIP("10.0.0.1")) {
+		t.Errorf("10.0.0.1 should still be forbidden by the defaults")
+	}
+}
